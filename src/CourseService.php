@@ -42,6 +42,10 @@ require_once 'DebugLogger.php';
 class CourseService{
 	
 	private $_configuration = null;
+
+	const RUNNING = "running";
+	const FINISHED = "finished";
+	const ERROR = "error";
 	
 	public function __construct($configuration) {
 		$this->_configuration = $configuration;
@@ -393,7 +397,7 @@ class CourseService{
     /// <param name="courseId">Unique Identifier for this course.</param>
     /// <param name="absoluteFilePathToZip">Full path to the .zip file</param>
     /// <returns>List of Import Results</returns>
-    public function ImportCourseAsync($courseId, $absoluteFilePathToZip)
+    public function ImportCourseAsync(string $courseId, string $absoluteFilePathToZip) : array
     {
         $uploadService = new UploadService($this->_configuration);
         $location = $uploadService->UploadFile($absoluteFilePathToZip);
@@ -407,17 +411,17 @@ class CourseService{
                 $xmlStatus = $this->getAsyncImportStatus($token);
                 $statusResult = (string) $xmlStatus->status;
                 switch ($statusResult) {
-                    case 'running':
+                    case $this::RUNNING:
                         sleep(5);
                         break;
-                    case 'error':
+                    case $this::ERROR:
                         $done = true;
                         $response = [];
                         break;
-                    case 'finished' :
+                    case $this::FINISHED :
                         $done = true;
                         $importResult = new ImportResult(null);
-                        $response = $importResult->ConverToImportResultsFromXML($xmlStatus);
+                        $response = $importResult->ConvertToImportResultsFromXML($xmlStatus);
                         break;
                     default:
                         $done = true;
@@ -441,7 +445,7 @@ class CourseService{
     /// <param name="courseId">Unique Identifier for the course</param>
     /// <param name="path">The relative path to the uploaded zip file</param>
     /// <returns>Token Id</returns>
-    public function ImportCourseAsyncToken($courseId, $path)
+    public function ImportCourseAsyncToken(string $courseId, string $path) : string
     {
         $request = new ServiceRequest($this->_configuration);
         $params = array('courseid'=>$courseId,
@@ -459,7 +463,7 @@ class CourseService{
     /// </summary>
     /// <param name="token">Unique token for the course upload</param>
     /// <returns>Import Status and Result as SimpleXMLElement</returns>
-    private function getAsyncImportStatus($token)
+    private function getAsyncImportStatus(string $token) : SimpleXMLElement
     {
         $request = new ServiceRequest($this->_configuration);
         $params = array('token'=>$token);

@@ -87,7 +87,7 @@ class ImportResult{
     /// </summary>
     /// <param name="xmlResult"></param>
     /// <returns>List of ImportResults</returns>
-    public static function ConverToImportResultsFromXML($xmlResult)
+    public static function ConvertToImportResultsFromXML(SimpleXMLElement $xmlResult) : array
     {
         $allResults = array();
         $importResults = $xmlResult->importresult;
