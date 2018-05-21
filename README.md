@@ -18,6 +18,9 @@ If you're using [Composer](http://getcomposer.org/), you can simply add a depend
 
 ## Updates:
 
+**v1.4.0** (5.21.2018)
+  - Added async approach to import course from SCORM Cloud using importCourseAsync and getAsyncImportResult API.
+  
 **v1.3.1** (5.1.2012)
 
   - Added Invitation Service to manage SCORM Cloud invitations through the new Invitation Service in the SCORM Cloud API.
