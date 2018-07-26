@@ -407,7 +407,7 @@ class CourseService{
         try {
             $token = $this->ImportCourseAsyncToken($courseId, $location);
             $done = false;
-            $attempt = $this->fibonacciBackOff();
+            $attempt = $this->exponentialBackOff();
             while (!$done){
                 $xmlStatus = $this->getAsyncImportStatus($token);
                 $statusResult = (string) $xmlStatus->status;
@@ -482,7 +482,7 @@ class CourseService{
     /// </summary>
     /// <param name="attempt">number of attemps</param>
     /// <returns>Generator</returns>
-    private function fibonacciBackOff() : \Generator
+    private function exponentialBackOff() : \Generator
     {
         $previous = 1;
         $current = 2;
