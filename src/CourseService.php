@@ -478,7 +478,7 @@ class CourseService{
     }
 
     /// <summary>
-    /// Get fibonacci back off
+    /// Using Fibonacci number for generating backoff
     /// </summary>
     /// <param name="attempt">number of attemps</param>
     /// <returns>Generator</returns>
