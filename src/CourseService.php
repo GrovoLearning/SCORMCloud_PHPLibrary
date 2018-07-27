@@ -407,12 +407,15 @@ class CourseService{
         try {
             $token = $this->ImportCourseAsyncToken($courseId, $location);
             $done = false;
+            $attempt = $this->exponentialBackOff();
             while (!$done){
                 $xmlStatus = $this->getAsyncImportStatus($token);
                 $statusResult = (string) $xmlStatus->status;
                 switch ($statusResult) {
                     case $this::RUNNING:
-                        sleep(5);
+                        $attempt->next();
+                        $delay = $attempt->current();
+                        sleep($delay);
                         break;
                     case $this::ERROR:
                         $done = true;
@@ -472,6 +475,23 @@ class CourseService{
         write_log('rustici.course.getAsyncImportResult : '.$response);
         $xmlStatus = simplexml_load_string($response);
         return $xmlStatus;
+    }
+
+    /// <summary>
+    /// Using Fibonacci number for generating backoff
+    /// </summary>
+    /// <param name="attempt">number of attemps</param>
+    /// <returns>Generator</returns>
+    private function exponentialBackOff() : \Generator
+    {
+        $previous = 1;
+        $current = 2;
+        while (true) {
+            yield $current;
+            $next = $previous + $current;
+            $previous = $current;
+            $current = $next;
+        }
     }
  }
 
