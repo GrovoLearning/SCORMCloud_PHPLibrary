@@ -43,6 +43,7 @@ class CourseService{
 	
 	private $_configuration = null;
 
+	const CREATED = "created";
 	const RUNNING = "running";
 	const FINISHED = "finished";
 	const ERROR = "error";
@@ -411,6 +412,7 @@ class CourseService{
                 $xmlStatus = $this->getAsyncImportStatus($token);
                 $statusResult = (string) $xmlStatus->status;
                 switch ($statusResult) {
+                    case $this::CREATED:
                     case $this::RUNNING:
                         sleep(5);
                         break;
