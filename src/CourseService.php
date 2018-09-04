@@ -410,23 +410,30 @@ class CourseService{
             $done = false;
             $attempt = $this->exponentialBackOff();
             while (!$done){
-                $xmlStatus = $this->getAsyncImportStatus($token);
-                $statusResult = (string) $xmlStatus->status;
-                switch ($statusResult) {
+                $xmlResult = $this->getAsyncImportResult($token);
+                $importStatus = (string) $xmlResult->status;
+                $progress = (int) $xmlResult->progress;
+                switch ($importStatus) {
                     case $this::CREATED:
                     case $this::RUNNING:
-                        $attempt->next();
-                        $delay = $attempt->current();
-                        sleep($delay);
+                        if ($progress === 100) {
+                            $done = true;
+                            $importResult = new ImportResult(null);
+                            $response = $importResult->ConvertToImportResultsFromXML($xmlResult);
+                        } else {
+                            $attempt->next();
+                            $delay = $attempt->current();
+                            sleep($delay);
+                        }
                         break;
                     case $this::ERROR:
                         $done = true;
                         $response = [];
                         break;
-                    case $this::FINISHED :
+                    case $this::FINISHED:
                         $done = true;
                         $importResult = new ImportResult(null);
-                        $response = $importResult->ConvertToImportResultsFromXML($xmlStatus);
+                        $response = $importResult->ConvertToImportResultsFromXML($xmlResult);
                         break;
                     default:
                         $done = true;
@@ -468,15 +475,15 @@ class CourseService{
     /// </summary>
     /// <param name="token">Unique token for the course upload</param>
     /// <returns>Import Status and Result as SimpleXMLElement</returns>
-    private function getAsyncImportStatus(string $token) : SimpleXMLElement
+    private function getAsyncImportResult(string $token) : SimpleXMLElement
     {
         $request = new ServiceRequest($this->_configuration);
         $params = array('token'=>$token);
         $request->setMethodParams($params);
         $response = $request->CallService("rustici.course.getAsyncImportResult");
         write_log('rustici.course.getAsyncImportResult : '.$response);
-        $xmlStatus = simplexml_load_string($response);
-        return $xmlStatus;
+        $xmlResult = simplexml_load_string($response);
+        return $xmlResult;
     }
 
     /// <summary>
