@@ -412,14 +412,14 @@ class CourseService{
             while (!$done){
                 $xmlResult = $this->getAsyncImportResult($token);
                 $importStatus = (string) $xmlResult->status;
-                $progress = (int) $xmlResult->progress;
                 switch ($importStatus) {
                     case $this::CREATED:
                     case $this::RUNNING:
+                        $progress = (int) $xmlResult->progress ?? 0;
+                        //Sometimes Scorm cloud returns status 'running' with progress 100
+                        //to indicate the completion of the course import
                         if ($progress === 100) {
-                            $done = true;
-                            $importResult = new ImportResult(null);
-                            $response = $importResult->ConvertToImportResultsFromXML($xmlResult);
+                            $response = $this->makeSuccessImportResult($done, $xmlResult);
                         } else {
                             $attempt->next();
                             $delay = $attempt->current();
@@ -431,9 +431,7 @@ class CourseService{
                         $response = [];
                         break;
                     case $this::FINISHED:
-                        $done = true;
-                        $importResult = new ImportResult(null);
-                        $response = $importResult->ConvertToImportResultsFromXML($xmlResult);
+                        $response = $this->makeSuccessImportResult($done, $xmlResult);
                         break;
                     default:
                         $done = true;
@@ -489,7 +487,6 @@ class CourseService{
     /// <summary>
     /// Using Fibonacci number for generating backoff
     /// </summary>
-    /// <param name="attempt">number of attemps</param>
     /// <returns>Generator</returns>
     private function exponentialBackOff() : \Generator
     {
@@ -501,6 +498,19 @@ class CourseService{
             $previous = $current;
             $current = $next;
         }
+    }
+
+    /// <summary>
+    /// Mark done as true and return the parsed import result
+    /// </summary>
+    /// <param name="done">whether to execute the while loop next time</param>
+    /// <param name="xmlResult"> the import result in xml </param>
+    /// <returns>Generator</returns>
+    private function makeSuccessImportResult(&$done, $xmlResult) : array
+    {
+        $done = true;
+        $importResult = new ImportResult(null);
+        return $importResult->ConvertToImportResultsFromXML($xmlResult);
     }
  }
 
