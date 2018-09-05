@@ -410,23 +410,28 @@ class CourseService{
             $done = false;
             $attempt = $this->exponentialBackOff();
             while (!$done){
-                $xmlStatus = $this->getAsyncImportStatus($token);
-                $statusResult = (string) $xmlStatus->status;
-                switch ($statusResult) {
+                $xmlResult = $this->getAsyncImportResult($token);
+                $importStatus = (string) $xmlResult->status;
+                switch ($importStatus) {
                     case $this::CREATED:
                     case $this::RUNNING:
-                        $attempt->next();
-                        $delay = $attempt->current();
-                        sleep($delay);
+                        $progress = (int) $xmlResult->progress ?? 0;
+                        //Sometimes Scorm cloud returns status 'running' with progress 100
+                        //to indicate the completion of the course import
+                        if ($progress === 100) {
+                            $response = $this->makeSuccessImportResult($done, $xmlResult);
+                        } else {
+                            $attempt->next();
+                            $delay = $attempt->current();
+                            sleep($delay);
+                        }
                         break;
                     case $this::ERROR:
                         $done = true;
                         $response = [];
                         break;
-                    case $this::FINISHED :
-                        $done = true;
-                        $importResult = new ImportResult(null);
-                        $response = $importResult->ConvertToImportResultsFromXML($xmlStatus);
+                    case $this::FINISHED:
+                        $response = $this->makeSuccessImportResult($done, $xmlResult);
                         break;
                     default:
                         $done = true;
@@ -468,21 +473,20 @@ class CourseService{
     /// </summary>
     /// <param name="token">Unique token for the course upload</param>
     /// <returns>Import Status and Result as SimpleXMLElement</returns>
-    private function getAsyncImportStatus(string $token) : SimpleXMLElement
+    private function getAsyncImportResult(string $token) : SimpleXMLElement
     {
         $request = new ServiceRequest($this->_configuration);
         $params = array('token'=>$token);
         $request->setMethodParams($params);
         $response = $request->CallService("rustici.course.getAsyncImportResult");
         write_log('rustici.course.getAsyncImportResult : '.$response);
-        $xmlStatus = simplexml_load_string($response);
-        return $xmlStatus;
+        $xmlResult = simplexml_load_string($response);
+        return $xmlResult;
     }
 
     /// <summary>
     /// Using Fibonacci number for generating backoff
     /// </summary>
-    /// <param name="attempt">number of attemps</param>
     /// <returns>Generator</returns>
     private function exponentialBackOff() : \Generator
     {
@@ -494,6 +498,19 @@ class CourseService{
             $previous = $current;
             $current = $next;
         }
+    }
+
+    /// <summary>
+    /// Mark done as true and return the parsed import result
+    /// </summary>
+    /// <param name="done">whether to execute the while loop next time</param>
+    /// <param name="xmlResult"> the import result in xml </param>
+    /// <returns>Generator</returns>
+    private function makeSuccessImportResult(&$done, $xmlResult) : array
+    {
+        $done = true;
+        $importResult = new ImportResult(null);
+        return $importResult->ConvertToImportResultsFromXML($xmlResult);
     }
  }
 
